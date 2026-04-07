@@ -1,0 +1,68 @@
+{
+  "planPath": "docs/superpowers/plans/2026-04-07-hpc-build-skill-flow.md",
+  "tasks": [
+    {
+      "id": 8,
+      "subject": "Task 1: Write baseline test scenarios (RED phase)",
+      "status": "pending",
+      "description": "**Goal:** Document expected vs. actual Claude behavior without HPC skills for three representative prompts.\n\n**Files:**\n- Create: `docs/superpowers/tests/hpc-skill-baselines.md`\n\n**Acceptance Criteria:**\n- [ ] Four scenarios documented (new project beginner, add component expert, ambiguous experience, verb transition)\n- [ ] Baseline behavior recorded for Scenarios A and C\n\n**Verify:** `test -f docs/superpowers/tests/hpc-skill-baselines.md`\n\n```json:metadata\n{\"files\": [\"docs/superpowers/tests/hpc-skill-baselines.md\"], \"verifyCommand\": \"test -f docs/superpowers/tests/hpc-skill-baselines.md\", \"acceptanceCriteria\": [\"Four scenarios documented\", \"Baseline behavior recorded for A and C\"]}\n```"
+    },
+    {
+      "id": 9,
+      "subject": "Task 2: Write shared/experience-infer.md",
+      "status": "pending",
+      "blockedBy": [8],
+      "description": "**Goal:** Shared hybrid experience-inference skill that all HPC verb routers invoke.\n\n**Files:**\n- Create: `skills/hpc/shared/experience-infer.md`\n\n**Acceptance Criteria:**\n- [ ] Valid YAML frontmatter\n- [ ] Signal → level mapping table\n- [ ] Dot flowchart\n- [ ] One confirmation question template\n- [ ] Under 400 words\n\n**Verify:** `wc -w skills/hpc/shared/experience-infer.md`\n\n```json:metadata\n{\"files\": [\"skills/hpc/shared/experience-infer.md\"], \"verifyCommand\": \"wc -w skills/hpc/shared/experience-infer.md\", \"acceptanceCriteria\": [\"Valid YAML frontmatter\", \"Signal table present\", \"Dot flowchart present\", \"Under 400 words\"]}\n```"
+    },
+    {
+      "id": 10,
+      "subject": "Task 3: Write skills/hpc/build.md (router)",
+      "status": "pending",
+      "blockedBy": [9],
+      "description": "**Goal:** User-facing HPC Build router skill.\n\n**Files:**\n- Create: `skills/hpc/build.md`\n\n**Acceptance Criteria:**\n- [ ] Valid YAML frontmatter with name: hpc-build\n- [ ] Dot flowchart covering full routing path\n- [ ] Mode detection table\n- [ ] Explicit delegation to superpowers-extended-cc:brainstorming\n\n**Verify:** `test -f skills/hpc/build.md`\n\n```json:metadata\n{\"files\": [\"skills/hpc/build.md\"], \"verifyCommand\": \"test -f skills/hpc/build.md\", \"acceptanceCriteria\": [\"Valid YAML frontmatter\", \"Dot flowchart present\", \"Mode detection table present\", \"Delegation explicit\"]}\n```"
+    },
+    {
+      "id": 11,
+      "subject": "Task 4: Write skills/hpc/build-scaffold.md",
+      "status": "pending",
+      "blockedBy": [10],
+      "description": "**Goal:** Sub-skill setting new-project framing before brainstorming.\n\n**Files:**\n- Create: `skills/hpc/build-scaffold.md`\n\n**Acceptance Criteria:**\n- [ ] Starting framing text\n- [ ] 4 ordered clarifying questions\n- [ ] CMake snippets for TBB, OpenMP, CUDA, Taskflow\n- [ ] Success criteria\n\n**Verify:** `test -f skills/hpc/build-scaffold.md`\n\n```json:metadata\n{\"files\": [\"skills/hpc/build-scaffold.md\"], \"verifyCommand\": \"test -f skills/hpc/build-scaffold.md\", \"acceptanceCriteria\": [\"CMake snippets for 4 libraries\", \"Success criteria present\", \"4 clarifying questions\"]}\n```"
+    },
+    {
+      "id": 12,
+      "subject": "Task 5: Write skills/hpc/build-component.md",
+      "status": "pending",
+      "blockedBy": [10],
+      "description": "**Goal:** Sub-skill setting existing-codebase framing before brainstorming.\n\n**Files:**\n- Create: `skills/hpc/build-component.md`\n\n**Acceptance Criteria:**\n- [ ] Starting framing text\n- [ ] 3 ordered clarifying questions\n- [ ] 5-item integration checklist\n- [ ] Success criteria\n\n**Verify:** `test -f skills/hpc/build-component.md`\n\n```json:metadata\n{\"files\": [\"skills/hpc/build-component.md\"], \"verifyCommand\": \"test -f skills/hpc/build-component.md\", \"acceptanceCriteria\": [\"3 clarifying questions\", \"5-item integration checklist\", \"Success criteria present\"]}\n```"
+    },
+    {
+      "id": 13,
+      "subject": "Task 6: Write skills/hpc/refresh-context.md",
+      "status": "pending",
+      "blockedBy": [10],
+      "description": "**Goal:** User-triggered skill to review and apply Stale Signals.\n\n**Files:**\n- Create: `skills/hpc/refresh-context.md`\n\n**Acceptance Criteria:**\n- [ ] Dot flowchart with terminal state\n- [ ] Confirm definition (official sources only)\n- [ ] Commit message template\n- [ ] 3 red flags\n\n**Verify:** `test -f skills/hpc/refresh-context.md`\n\n```json:metadata\n{\"files\": [\"skills/hpc/refresh-context.md\"], \"verifyCommand\": \"test -f skills/hpc/refresh-context.md\", \"acceptanceCriteria\": [\"Dot flowchart with terminal state\", \"Confirm definition present\", \"Commit message template present\"]}\n```"
+    },
+    {
+      "id": 14,
+      "subject": "Task 7: Verify all skills — GREEN phase",
+      "status": "pending",
+      "blockedBy": [11, 12, 13],
+      "description": "**Goal:** Run baseline scenarios with all skills present; confirm correct behavior.\n\n**Files:**\n- Modify: `docs/superpowers/tests/hpc-skill-baselines.md`\n\n**Acceptance Criteria:**\n- [ ] All 4 scenarios verified\n- [ ] No unresolved loopholes\n\n**Verify:** `grep -c 'GREEN Phase' docs/superpowers/tests/hpc-skill-baselines.md`\n\n```json:metadata\n{\"files\": [\"docs/superpowers/tests/hpc-skill-baselines.md\"], \"verifyCommand\": \"grep -c 'GREEN Phase' docs/superpowers/tests/hpc-skill-baselines.md\", \"acceptanceCriteria\": [\"All 4 scenarios verified\", \"No unresolved loopholes\"]}\n```"
+    },
+    {
+      "id": 15,
+      "subject": "Task 8: Set up scheduled staleness agent",
+      "status": "pending",
+      "blockedBy": [14],
+      "description": "**Goal:** Configure weekly scheduled agent via schedule skill.\n\n**Files:**\n- No new files\n\n**Acceptance Criteria:**\n- [ ] Agent configured with weekly cadence\n- [ ] Dry-run modifies only Stale Signals section\n\n**Verify:** `git diff HEAD~1 skills/hpc/shared/hpc-context.md`\n\n```json:metadata\n{\"files\": [], \"verifyCommand\": \"git diff HEAD~1 skills/hpc/shared/hpc-context.md\", \"acceptanceCriteria\": [\"Agent configured with weekly cadence\", \"Dry-run modifies only Stale Signals section\"]}\n```"
+    },
+    {
+      "id": 16,
+      "subject": "Task 9: Final commit and push",
+      "status": "pending",
+      "blockedBy": [14, 15],
+      "description": "**Goal:** Clean working tree, all files committed, pushed to remote.\n\n**Files:**\n- All files in skills/hpc/ and docs/\n\n**Acceptance Criteria:**\n- [ ] Clean working tree\n- [ ] All commits pushed to origin/main\n\n**Verify:** `git log --oneline origin/main | head -10`\n\n```json:metadata\n{\"files\": [], \"verifyCommand\": \"git log --oneline origin/main | head -10\", \"acceptanceCriteria\": [\"Clean working tree\", \"All commits pushed\"]}\n```"
+    }
+  ],
+  "lastUpdated": "2026-04-07T00:00:00Z"
+}
