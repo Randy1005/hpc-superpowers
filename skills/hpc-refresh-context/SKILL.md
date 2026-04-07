@@ -11,7 +11,7 @@ description: Use when Stale Signals exist in hpc-context.md and need to be revie
 
 ```dot
 digraph refresh_context {
-    "Read ## Stale Signals in skills/hpc/shared/hpc-context.md" [shape=box];
+    "Read ## Stale Signals in skills/shared/hpc-context.md" [shape=box];
     "Signals present?" [shape=diamond];
     "Done — no action needed" [shape=doublecircle];
     "For each signal: web-search official release notes / changelog" [shape=box];
@@ -47,7 +47,7 @@ For each signal (e.g., "oneTBB 2022.1 removes `parallel_pipeline`"):
 
 ## File to Modify
 
-`skills/hpc/shared/hpc-context.md`
+`skills/shared/hpc-context.md`
 
 Apply confirmed updates to the relevant section:
 - Deprecations → add row to Deprecations table

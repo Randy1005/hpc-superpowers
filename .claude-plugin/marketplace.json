@@ -1,20 +1,19 @@
 {
-  "name": "superpowers-extended-cc-marketplace",
-  "description": "Marketplace for Superpowers Extended CC - Claude Code-specific enhancements",
-  "owner": {
-    "name": "pcvelz",
-    "email": "pcvelz@users.noreply.github.com"
-  },
-  "plugins": [
-    {
-      "name": "superpowers-extended-cc",
-      "description": "Claude Code-specific fork of Superpowers with native task management and CC-specific enhancements",
-      "version": "5.2.6",
-      "source": "./",
-      "author": {
-        "name": "pcvelz",
-        "email": "pcvelz@users.noreply.github.com"
-      }
-    }
-  ]
+    "name": "hpc-superpowers",
+    "owner": {
+        "name": "Randy1005",
+        "email": "randychang.10@gmail.com"
+    },
+    "plugins": [
+        {
+            "name": "hpc-superpowers",
+            "description": "HPC development skill flows for C++ parallel programming — TBB, OpenMP, CUDA C++, Taskflow, cuBLAS",
+            "version": "0.1.0",
+            "source": "./",
+            "author": {
+                "name": "Randy1005",
+                "email": "randychang.10@gmail.com"
+            }
+        }
+    ]
 }
