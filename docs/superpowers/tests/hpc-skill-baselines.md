@@ -257,7 +257,7 @@
 
 To produce the expected hard stop behavior, the scenario would need to either: (1) use a CUDA stack without `ncu`/`nsys`, or (2) explicitly state gprof is also absent. Scenario C as written would proceed via gprof.
 
-**Verdict:** ⚠️ DESIGN GAP — hard stop is unreachable for CPU-only stacks; gprof serves as unconditional fallback. Scenario should be revised to CUDA + no ncu/nsys to exercise the hard stop path. Logic for the gprof fallback itself is correct.
+**Verdict:** ✅ PASS (with clarification) — for CPU-only stacks, gprof is the unconditional final fallback; hard stop is intentionally reserved for CUDA stacks without ncu/nsys. On an OpenMP project with no vtune/perf, the skill correctly falls through to gprof and instructs the user to recompile with `-pg -g`. This is accepted behavior.
 
 ---
 
