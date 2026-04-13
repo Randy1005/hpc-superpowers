@@ -118,3 +118,94 @@
 3. Even if it existed: `experience-infer.md` has no mechanism to write inferred level to disk — cross-session carry-forward is not implemented
 
 **Verdict:** ⚠️ DEFERRED — Scenario D tests a future verb (`optimize`) and requires a persistence mechanism in `experience-infer.md` (write level to `.hpc-session` or similar). Not a defect in current Build skill scope. Re-run when `optimize` verb is implemented.
+
+---
+
+# HPC Optimize Baseline Test Scenarios
+
+> RED phase baselines recorded before hpc-optimize skill was written.
+> GREEN phase results to be added after skills are implemented (Task 5).
+
+---
+
+## Scenario A — CUDA kernel, intermediate user
+
+**Prompt:** "Optimize my CUDA matrix multiply kernel" (user provides a `.cu` file with AoS layout)
+
+**Without skills (baseline):** Claude may suggest optimizations based on reading the code, but will not run a profiler, will not distinguish confirmed from speculative hotspots, and will not maintain any log of what was tried.
+
+**Expected with skills:**
+- experience-infer: detects intermediate (CUDA vocabulary present, no expert-level terms)
+- Log check: no log found → asks where to store it
+- Binary resolution: asks user for binary path + args
+- optimize-static: finds AoS layout → uncoalesced access candidate
+- profiler: detects CUDA → `ncu` or `nsys`; runs profiler; returns global load efficiency stat
+- Synthesis: AoS candidate confirmed by profiler → recommended as top priority
+- Applies SoA fix; appends Run 1 to log
+- Asks: "Result: Xms → Yms. Continue optimizing or done?"
+
+---
+
+## Scenario B — TBB parallel_for, expert user
+
+**Prompt:** "Speed up my TBB parallel_for — grain size is 1 and it's slower than serial"
+
+**Without skills (baseline):** Claude likely suggests increasing grain size immediately without profiling to confirm the cause, and without checking whether `tbbmalloc` is linked.
+
+**Expected with skills:**
+- experience-infer: detects expert (TBB vocabulary, grain size terminology)
+- No confirmation question asked
+- optimize-static: finds grain=1 → "grain too fine" candidate; checks for `new` inside loop body → missing `tbbmalloc` candidate
+- profiler: detects CPU-only → VTune or perf; confirms which hotspot dominates
+- Synthesis: grain candidate or tbbmalloc candidate prioritized by profiler data
+- Applies fix; appends Run 1 to log
+
+---
+
+## Scenario C — No profiler in PATH
+
+**Prompt:** "Optimize my OpenMP loop" (no `ncu`, `nsys`, `vtune`, or `perf` in PATH)
+
+**Without skills (baseline):** Claude proceeds with static analysis or guesses.
+
+**Expected with skills:**
+- optimize-static runs and finds candidates
+- profiler.md: no profiler detected → hard stop with install instructions
+- Skill does NOT proceed to optimization
+- Output: "No profiler found. Install one of: [instructions]"
+
+---
+
+## Scenario D — Existing log found, second iteration
+
+**Prompt:** User re-invokes `/hpc-optimize` after Run 1 already logged AoS fix
+
+**Without skills (baseline):** Claude has no memory of prior run; may suggest re-fixing AoS.
+
+**Expected with skills:**
+- Log found at known path → read in full
+- optimize-static: skips AoS pattern (already resolved per log)
+- profiler: re-runs; hotspot has shifted to reduction kernel
+- Synthesis: new top hotspot identified
+- Appends Run 2 to log
+
+---
+
+## Scenario E — User doesn't know binary path
+
+**Prompt:** "Optimize my app" (no binary path specified)
+
+**Without skills (baseline):** Claude may ask or may try to find it, inconsistently.
+
+**Expected with skills:**
+- Binary resolution: asks user first
+- User responds "I don't know"
+- Skill scans `build/` for executables, reads `CMakeLists.txt` for `add_executable` targets
+- Presents numbered list; asks user to pick
+- Confirms full invocation before running profiler
+
+---
+
+## GREEN Phase Results
+
+*To be filled after Task 5 baselines run.*
