@@ -1,7 +1,7 @@
 {
     "name": "hpc-superpowers",
     "description": "HPC development skill flows for C++ parallel programming — TBB, OpenMP, CUDA C++, Taskflow, cuBLAS",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "author": {
         "name": "Randy1005",
         "email": "randychang.10@gmail.com"
