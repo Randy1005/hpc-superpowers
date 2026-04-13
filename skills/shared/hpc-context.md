@@ -534,7 +534,215 @@ Multi-GPU: call `cudaSetDevice(n)` inside each cudaFlow lambda.
 
 ## OpenMP
 
-*Content to be added in a future update.*
+> Training-knowledge snapshot based on OpenMP 5.2 specification (August 2025 cutoff).
+> Authoritative source: https://www.openmp.org/spec-html/5.2/openmp.html
+
+### Core Parallel Constructs
+
+```cpp
+#pragma omp parallel [clauses]          // spawn thread team; implicit barrier at end
+#pragma omp parallel for [clauses]      // parallel + worksharing loop in one directive
+#pragma omp for [clauses]               // worksharing loop (inside existing parallel region)
+#pragma omp sections                    // divide block into independent named sections
+#pragma omp single                      // one thread executes block; others wait at implicit barrier
+#pragma omp master                      // master thread only; NO implicit barrier (prefer single)
+#pragma omp barrier                     // explicit sync point for all threads in team
+```
+
+**Thread count:** `num_threads(N)` clause overrides `OMP_NUM_THREADS`. Set once at outermost `parallel`; avoid changing inside nested regions.
+
+### Work-Sharing: Loop Scheduling
+
+```cpp
+#pragma omp for schedule(static)          // chunk = N/threads, round-robin; lowest overhead
+#pragma omp for schedule(static, chunk)   // fixed chunk per thread
+#pragma omp for schedule(dynamic)         // thread grabs next chunk when idle; default chunk=1
+#pragma omp for schedule(dynamic, chunk)  // dynamic with explicit chunk size
+#pragma omp for schedule(guided)          // exponentially decreasing chunks (guided self-scheduling)
+#pragma omp for schedule(auto)            // let runtime decide
+#pragma omp for schedule(runtime)         // defer to OMP_SCHEDULE env var
+```
+
+| Schedule | When to use |
+|----------|-------------|
+| `static` | Uniform iteration cost; known at compile time |
+| `dynamic` | Irregular iteration cost; load imbalance expected |
+| `guided` | Irregular cost, but setup overhead of `dynamic` is too high |
+| `auto` | Let the runtime profile and choose |
+
+**`collapse(n)`** — flattens n nested loops into single iteration space for better distribution:
+```cpp
+#pragma omp parallel for collapse(2)
+for (int i = 0; i < M; i++)
+    for (int j = 0; j < N; j++)
+        a[i][j] = b[i][j] + c[i][j];
+```
+
+**`nowait`** — removes implicit barrier at end of worksharing construct; use when next section is independent:
+```cpp
+#pragma omp for nowait
+for (...) { ... }
+// no barrier here — next work begins immediately
+```
+
+### Data-Sharing Clauses
+
+| Clause | Behavior |
+|--------|----------|
+| `shared(x)` | All threads share one storage location; programmer must synchronize |
+| `private(x)` | Each thread gets uninitialized copy; original unchanged after region |
+| `firstprivate(x)` | Private copy initialized from enclosing scope value |
+| `lastprivate(x)` | Private copy; last iteration's value written back to original |
+| `reduction(op:x)` | Private copy per thread; combined with `op` at end (`+`, `*`, `&`, `\|`, `^`, `&&`, `\|\|`, `min`, `max`) |
+| `default(none)` | Forces explicit data-sharing for all variables; best practice for correctness |
+| `default(shared)` | All unspecified vars are shared (implicit default — dangerous) |
+
+**Always use `default(none)`** in complex parallel regions. Silent sharing of loop-external variables is the most common source of data races.
+
+**Custom reductions** (OpenMP 4.0+):
+```cpp
+#pragma omp declare reduction(vec_add : std::vector<float> : \
+    std::transform(omp_in.begin(), omp_in.end(), omp_out.begin(), omp_out.begin(), std::plus<float>())) \
+    initializer(omp_priv = omp_orig)
+
+#pragma omp parallel for reduction(vec_add : result)
+for (int i = 0; i < N; i++) result[i] += compute(i);
+```
+
+### Synchronization Primitives
+
+```cpp
+#pragma omp critical [(name)]       // mutual exclusion; name selects lock (unnamed = one global lock)
+#pragma omp atomic [read|write|update|capture]  // lock-free atomic on single memory op
+#pragma omp ordered                 // execute in original loop order (inside ordered-clause for loop)
+#pragma omp flush [(list)]          // memory fence; force cache coherence for listed vars
+```
+
+**`atomic` vs `critical`:**
+- `atomic` — single memory op only (`x++`, `x += y`, etc.); lower overhead than `critical`
+- `critical` — arbitrary block; serializes all threads (or named subset); higher overhead
+
+**Named critical sections:** Use distinct names for independent critical sections to avoid false serialization:
+```cpp
+#pragma omp critical (list_A)   { list_A.push_back(x); }
+#pragma omp critical (list_B)   { list_B.push_back(y); }  // does NOT block on list_A
+```
+
+### Task Model (OpenMP 3.0+)
+
+```cpp
+#pragma omp task [clauses]          // create explicit task, possibly run by another thread
+#pragma omp taskwait                // wait for direct child tasks to complete
+#pragma omp taskgroup               // wait for all tasks created within the group
+#pragma omp taskyield               // hint scheduler this task can be suspended
+
+// Task dependencies (4.0+)
+#pragma omp task depend(in: x) depend(out: y)    // y produced after x consumed
+#pragma omp task depend(inout: arr[0:N])          // read-modify-write on array section
+```
+
+**Canonical recursive task pattern:**
+```cpp
+void merge_sort(int* a, int n) {
+    if (n <= GRAIN) { std::sort(a, a+n); return; }
+    #pragma omp task
+        merge_sort(a, n/2);
+    #pragma omp task
+        merge_sort(a + n/2, n - n/2);
+    #pragma omp taskwait
+    merge(a, n);
+}
+// Call site:
+#pragma omp parallel
+#pragma omp single
+    merge_sort(data, N);
+```
+
+**`taskloop`** — generates tasks for loop iterations with controllable granularity:
+```cpp
+#pragma omp taskloop grainsize(1000)
+for (int i = 0; i < N; i++) process(i);  // each task handles 1000 iterations
+```
+
+### SIMD Directives (OpenMP 4.0+)
+
+```cpp
+#pragma omp simd [safelen(n)] [reduction(op:var)] [linear(var:step)]
+for (int i = 0; i < N; i++) a[i] = b[i] + c[i];
+
+// safelen: max vector length where no dependency exists
+#pragma omp simd safelen(8)
+for (int i = 0; i < N; i++) a[i] = a[i-1] * 0.5f;  // dependency distance >= 8
+
+// SIMD-enable a function (callable from simd loops)
+#pragma omp declare simd
+float scale(float x) { return x * 2.0f; }
+```
+
+**`parallel for simd`** — combine thread-level and SIMD parallelism:
+```cpp
+#pragma omp parallel for simd schedule(static)
+for (int i = 0; i < N; i++) a[i] = b[i] + c[i];
+```
+
+### Thread Affinity
+
+```
+OMP_PLACES=cores          # bind to physical cores
+OMP_PLACES=threads        # bind to hardware threads (hyperthreading)
+OMP_PLACES=sockets        # one thread per socket
+
+OMP_PROC_BIND=close       # pack threads near master (good for shared cache)
+OMP_PROC_BIND=spread      # spread across all places (good for NUMA bandwidth)
+OMP_PROC_BIND=master      # all threads on same place as master
+```
+
+**NUMA-aware pattern** — use `OMP_PROC_BIND=spread` + first-touch initialization:
+```cpp
+// Initialize in parallel to trigger first-touch NUMA placement
+#pragma omp parallel for schedule(static)
+for (int i = 0; i < N; i++) a[i] = 0.0f;
+
+// Compute with same static distribution → data is local to each thread's NUMA node
+#pragma omp parallel for schedule(static)
+for (int i = 0; i < N; i++) a[i] = compute(i);
+```
+
+### Pitfalls
+
+- **`default(shared)` races:** unspecified loop-external variables silently shared → always use `default(none)`.
+- **`private` uninitialized:** `private(x)` gives an uninitialized copy — use `firstprivate` if you need the initial value.
+- **Unnamed `critical` bottleneck:** all unnamed `critical` sections share one global lock → name independent sections.
+- **`atomic` on non-scalar:** `atomic` only covers a single memory operation; compound operations need `critical`.
+- **Missing `taskwait`:** spawned tasks may not complete before their result is read → always `taskwait` before consuming task output.
+- **`ordered` without `ordered` clause:** `#pragma omp ordered` inside a loop requires `schedule(...) ordered` on the `for` directive.
+- **`nowait` with dependent data:** removing the implicit barrier is safe only when subsequent work doesn't read the loop's output.
+- **Nested parallelism oversubscription:** inner `parallel` spawns new threads even if all cores are busy → set `OMP_MAX_ACTIVE_LEVELS=1` or `omp_set_max_active_levels(1)` unless nested parallelism is intentional.
+- **`collapse` on non-perfectly-nested loops:** only perfectly nested loops (no code between loop headers) are safe to collapse.
+- **`lastprivate` in non-last iteration:** value only written back from the sequentially last iteration; parallel execution order is irrelevant.
+- **False sharing:** per-thread counters in `int arr[num_threads]` indexed by `omp_get_thread_num()` → pad to cache line or use reduction.
+- **`flush` omission:** reading a variable written by another thread without an intervening `flush` (or `atomic`/`barrier`) is technically undefined behavior under the OpenMP memory model.
+
+### Quick Reference
+
+| Scenario | Directive / Clause |
+|----------|--------------------|
+| Parallel loop, uniform cost | `#pragma omp parallel for schedule(static)` |
+| Parallel loop, irregular cost | `#pragma omp parallel for schedule(dynamic)` |
+| Collapse nested loops | `collapse(2)` clause |
+| Per-thread accumulator | `reduction(+:sum)` |
+| Custom type reduction | `declare reduction` |
+| Independent parallel sections | `#pragma omp sections` |
+| Single-threaded block | `#pragma omp single` |
+| Lock-free counter update | `#pragma omp atomic update` |
+| Mutual exclusion block | `#pragma omp critical (name)` |
+| Recursive task parallelism | `#pragma omp task` + `taskwait` |
+| Task with dependencies | `depend(in:x) depend(out:y)` |
+| Loop as tasks | `#pragma omp taskloop grainsize(N)` |
+| SIMD vectorization | `#pragma omp simd` |
+| NUMA-aware first-touch | `schedule(static)` + `OMP_PROC_BIND=spread` |
+| Thread count | `num_threads(N)` or `OMP_NUM_THREADS` |
+| Affinity | `OMP_PLACES` + `OMP_PROC_BIND` |
 
 ---
 

@@ -167,7 +167,7 @@ The agent reads the full log at the start of each iteration to avoid re-addressi
 | CUDA | Uncoalesced access (AoS layout), shared memory bank conflicts, warp divergence, missing `__syncthreads__`, no stream overlap, `cudaDeviceSynchronize` in loops, non-pinned host memory, UM without prefetch |
 | TBB | Grain too fine, false sharing, `concurrent_hash_map` accessor held too long, flow graph for simple fork-join, missing `tbbmalloc` |
 | Taskflow | Dangling captures, new `Taskflow` per hot-loop iteration, nested executor deadlock risk |
-| OpenMP | Deferred — hpc-context OpenMP section not yet written |
+| OpenMP | `default(shared)` data races, false sharing on per-thread arrays, unnamed `critical` bottleneck, `private` where `firstprivate` needed, `nowait` with dependent data, missing `taskwait`, nested parallelism oversubscription, non-perfectly-nested `collapse` |
 
 ### Output contract
 
@@ -214,7 +214,7 @@ Ordered list of up to 5 candidates. Does not run anything, does not write to log
 - `docs/specs/` is excluded from plugin deployment — design docs stay in the dev repo only
 - `shared/profiler.md` is the only new shared file; `experience-infer.md` and `hpc-context.md` are reused unchanged
 - `hpc-profile` verb (planned) should delegate to `shared/profiler.md` directly — no duplication needed
-- OpenMP static analysis patterns deferred until `hpc-context.md` OpenMP section is written
+- OpenMP static analysis patterns now fully specified (hpc-context.md OpenMP section complete)
 
 ---
 
